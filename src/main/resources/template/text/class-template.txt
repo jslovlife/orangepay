@@ -1,0 +1,7 @@
+package model;
+
+public class [(${class})] {
+    [# th:each="attribute : ${attributes}" ]
+       public String [(${attribute})];
+    [/]
+}

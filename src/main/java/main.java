@@ -1,8 +1,6 @@
-import model.ThymeLeafConfig;
-import org.thymeleaf.TemplateEngine;
+import model.DeserialiserModel;
+import util.ThymeLeafConfig;
 import org.thymeleaf.context.Context;
-import org.thymeleaf.templatemode.TemplateMode;
-import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import util.Constant;
 
 import java.io.*;
@@ -14,31 +12,6 @@ import static java.lang.Integer.parseInt;
 class main {
     public static void main(String[] args) throws IOException, FileNotFoundException {
         createModel();
-
-        var resolver = new ClassLoaderTemplateResolver();
-        resolver.setTemplateMode(TemplateMode.HTML);
-        resolver.setCharacterEncoding("UTF-8");
-        resolver.setPrefix("/template/");
-        resolver.setSuffix(".html");
-
-        Object obj = new Object();
-
-        var context = new Context();
-
-        context.setVariable("firstName", "John");
-        context.setVariable("lastName", "Lim");
-        context.setVariable("level", "3");
-        context.setVariable("class", "1J");
-
-        var templateEngine = new TemplateEngine();
-        templateEngine.setTemplateResolver(resolver);
-
-        var result = templateEngine.process("student", context);
-
-        Writer writer = new FileWriter(Constant.filePath + "hello.java");
-        writer.write(ThymeLeafConfig.getTemplateEngine().process("hello.java", context));
-        writer.close();
-        System.out.println(result);
     }
 
     static boolean createModel() throws FileNotFoundException, IOException {
@@ -49,36 +22,48 @@ class main {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-        StringBuilder sb = new StringBuilder();
-        StringBuilder sbDeseliariser = new StringBuilder();
+
+        StringBuilder sbAttribute = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
             int index = 0;
             String className = null;
+
+            Context contextForClass = new Context();
+            Context contextForDeserialiser = new Context();
+
+            List<DeserialiserModel> deserialisers = new ArrayList<>();
+
             while ((line = br.readLine()) != null) {
 
                 if (index == 0) {
                     className = line.split(",")[0];
-                    generateClass(sb, className);
-                    generateDeserialiser(sbDeseliariser, className);
                 } else {
+                    DeserialiserModel deserialiser = new DeserialiserModel();
                     String attribute = line.split(",")[0];
-                    int deselialiserStart = parseInt(line.split(",")[1]) - 1;
-                    int deselialiserEnd = parseInt(line.split(",")[2]) - 1;
-                    generateObjAttribute(sb, line.split(",")[0], Constant.dataTypeStr);
-                    generateDeseliariserAttribute(sbDeseliariser, attribute, deselialiserStart, deselialiserEnd);
+                    sbAttribute.append(attribute + ";");
+                    deserialiser.setAttribute(line.split(",")[0]);
+                    deserialiser.setFirstDigit(parseInt(line.split(",")[1]) - 1);
+                    deserialiser.setLastDigit(parseInt(line.split(",")[2]) - 1);
+
+                    deserialisers.add(deserialiser);
+
                 }
 
                 index++;
             }
 
-            //Generate last bracket to close object class
-            generateClassClose(sb);
-            generateDeserialiserClose(sbDeseliariser);
+            contextForClass.setVariable("class", className);
+            contextForClass.setVariable("attributes", sbAttribute.toString().split(";"));
 
-            //Generate java file for new class
-            generateJavaClass(sb, className);
-            generateJavaClass(sbDeseliariser, className + Constant.deserialiser);
+            contextForDeserialiser.setVariable("class", className);
+            contextForDeserialiser.setVariable("deserialisers", deserialisers);
+
+            String classTemplate = ThymeLeafConfig.getTemplateEngine().process("class-template", contextForClass);
+            String deserialiserTemplate = ThymeLeafConfig.getTemplateEngine().process("deserialiser-template", contextForDeserialiser);
+
+            generateJavaClass(classTemplate, className);
+            generateJavaClass(deserialiserTemplate, className+Constant.deserialiser);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -87,37 +72,9 @@ class main {
         return true;
     }
 
-    private static void generateJavaClass(StringBuilder sb, String className) throws IOException {
+    private static void generateJavaClass(String text, String className) throws IOException {
         FileOutputStream fOS = new FileOutputStream(Constant.filePath + className + Constant.fileExtensionJava);
-        fOS.write(sb.toString().getBytes());
-    }
-
-    private static void generateClass(StringBuilder sb, String className) {
-        sb.append("package model;\n\n");
-        sb.append("public class " + className + " {\n");
-    }
-
-    private static void generateClassClose(StringBuilder sb) {
-        sb.append("}");
-    }
-
-    private static void generateDeserialiser(StringBuilder sb, String className) {
-        sb.append("package model;\n\n");
-        sb.append("public class " + className + "Deserialiser {\n");
-        sb.append("\tpublic " + className + " parse(String lineFeed) {\n");
-        sb.append("\t\t" + className + " record = new " + className + "();\n");
-    }
-
-    private static void generateDeserialiserClose(StringBuilder sb) {
-        sb.append("\t\treturn record;\n\t}\n}");
-    }
-
-    private static void generateObjAttribute(StringBuilder sb, String attribute, String dataType) {
-        sb.append("\tpublic " + dataType + " " + attribute + ";\n");
-    }
-
-    private static void generateDeseliariserAttribute(StringBuilder sb, String attribute, int start, int end) {
-        sb.append("\t\trecord." + attribute + " = lineFeed.substring(" + start + "," + end + ").trim();\n");
+        fOS.write(text.getBytes());
     }
 
     /*private static List<StudentRecord> parseDummyDataFile() {
@@ -143,4 +100,5 @@ class main {
 
         return list;
     }*/
+
 }

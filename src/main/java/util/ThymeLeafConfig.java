@@ -1,6 +1,7 @@
-package model;
+package util;
 
 import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 import util.Constant;
 
@@ -10,14 +11,14 @@ public enum ThymeLeafConfig {
 
     private ThymeLeafConfig(){
         FileTemplateResolver templateResolver = new FileTemplateResolver();
-        templateResolver.setPrefix(getTemplatePath());
-        templateResolver.setTemplateMode("JAVA");
+        templateResolver.setPrefix("src/main/resources/template/text/");
+        templateResolver.setSuffix(".txt");
+        templateResolver.setTemplateMode(TemplateMode.TEXT);
+        templateResolver.setCharacterEncoding("UTF8");
+        templateResolver.setCheckExistence(true);
+        templateResolver.setCacheable(false);
         templateEngine = new TemplateEngine();
         templateEngine.setTemplateResolver(templateResolver);
-    }
-
-    public static String getTemplatePath(){
-        return ThymeLeafConfig.class.getProtectionDomain().getCodeSource().getLocation().getPath() + "template/";
     }
 
     public static TemplateEngine getTemplateEngine(){
