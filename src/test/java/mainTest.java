@@ -12,4 +12,8 @@ class mainTest {
         assertTrue(main.createModel());
         assert(true);
     }
+
+    @Test
+    void createModel() {
+    }
 }

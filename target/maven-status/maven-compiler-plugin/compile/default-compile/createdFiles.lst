@@ -1,6 +1,6 @@
-StudentRecordDeserialiser.class
 main.class
-StudentRecord.class
+model\DeserialiserModel.class
+util\ThymeLeafConfig.class
 controller\ClassCreatorController.class
 util\Constant.class
 service\ClassCreatorService.class

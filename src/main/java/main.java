@@ -9,7 +9,15 @@ import java.util.List;
 
 import static java.lang.Integer.parseInt;
 
+import java.util.logging.*;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 class main {
+    //Creating the Logger object
+    private static Logger logger = Logger.getLogger("main");
+
     public static void main(String[] args) throws IOException, FileNotFoundException {
         createModel();
     }
@@ -36,15 +44,25 @@ class main {
 
             while ((line = br.readLine()) != null) {
 
+                String[] lineArr = line.split(",");
+
+                validateLine(lineArr, line, index);
+
                 if (index == 0) {
-                    className = line.split(",")[0];
+                    className = lineArr[0];
                 } else {
                     DeserialiserModel deserialiser = new DeserialiserModel();
-                    String attribute = line.split(",")[0];
-                    sbAttribute.append(attribute + ";");
-                    deserialiser.setAttribute(line.split(",")[0]);
-                    deserialiser.setFirstDigit(parseInt(line.split(",")[1]) - 1);
-                    deserialiser.setLastDigit(parseInt(line.split(",")[2]) - 1);
+
+                    validateAttribute(lineArr[0]);
+
+                    validationFirstAndLastDigit(lineArr[2], lineArr[3]);
+
+                    sbAttribute.append(lineArr[0] + ";");
+                    deserialiser.setAttribute(validateNull(Constant.ATTRIBUTE,lineArr[0]));
+                    deserialiser.setDescription(validateNull(Constant.DESCRIPTION,lineArr[1]));
+
+                    deserialiser.setFirstDigit(parseInt(validateNull(Constant.FIRSTDIGIT,lineArr[2])) - 1);
+                    deserialiser.setLastDigit(parseInt(validateNull(Constant.LASTDIGIT,lineArr[3])) - 1);
 
                     deserialisers.add(deserialiser);
 
@@ -54,7 +72,8 @@ class main {
             }
 
             contextForClass.setVariable("class", className);
-            contextForClass.setVariable("attributes", sbAttribute.toString().split(";"));
+            //contextForClass.setVariable("attributes", sbAttribute.toString().split(";"));
+            contextForClass.setVariable("deserialisers", deserialisers);
 
             contextForDeserialiser.setVariable("class", className);
             contextForDeserialiser.setVariable("deserialisers", deserialisers);
@@ -63,10 +82,12 @@ class main {
             String deserialiserTemplate = ThymeLeafConfig.getTemplateEngine().process("deserialiser-template", contextForDeserialiser);
 
             generateJavaClass(classTemplate, className);
-            generateJavaClass(deserialiserTemplate, className+Constant.deserialiser);
+            generateJavaClass(deserialiserTemplate, className + Constant.deserialiser);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (Exception e) {
+            logger.severe(e.getMessage());
         }
 
         return true;
@@ -75,6 +96,59 @@ class main {
     private static void generateJavaClass(String text, String className) throws IOException {
         FileOutputStream fOS = new FileOutputStream(Constant.filePath + className + Constant.fileExtensionJava);
         fOS.write(text.getBytes());
+    }
+
+    private static void validateLine(String [] lineArr , String line, int index) throws Exception {
+
+        if (index == 0) {
+            if (lineArr.length != Constant.classLineLength) {
+                throw new Exception("Class line contains extra or missing component: " + line);
+            }
+        } else{
+            if (lineArr.length != Constant.attributeLineLength) {
+                throw new Exception("Attribute line contains or missing extra component: " + line);
+            }
+        }
+    }
+
+    private static String validateNull(String attribute, String data) throws Exception {
+
+        if (data.equals(null)){
+            throw new Exception(" cannot null.");
+        }
+
+        return data;
+    }
+
+    private static void validateAttribute(String attribute) throws Exception {
+        Pattern pattern = Pattern.compile("[^a-zA-Z]");
+        Matcher matcher = pattern.matcher(attribute);
+
+        if (matcher.find()) {
+            throw new Exception("Error -> Attribute only can contain characters. File cannot process.");
+        }
+
+    }
+
+    private static boolean validationFirstAndLastDigit(String firstDigit, String lastDigit) throws Exception {
+
+        Pattern pattern = Pattern.compile("[0-9]+");
+        boolean isFirstDigitValid = pattern.matcher(firstDigit).find();
+        boolean isLastDigitValid = pattern.matcher(lastDigit).find();
+
+        if (!isFirstDigitValid) {
+            throw new Exception("First digit must be number, firstDigit = "+firstDigit);
+        }
+
+        if (!isLastDigitValid) {
+            throw new Exception("Last digit must be number, lastDigit = "+lastDigit);
+        }
+
+        if (parseInt(firstDigit) > parseInt(lastDigit)) {
+            throw new Exception("First digit must greater than last digit,  firstDigit = "+firstDigit+", lastDigit = "+lastDigit);
+        }
+
+        return false;
     }
 
     /*private static List<StudentRecord> parseDummyDataFile() {

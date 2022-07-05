@@ -1,0 +1,11 @@
+package model;
+
+public class [(${class})]Deserialiser {
+    public [(${class})] parse(String lineFeed) {
+        [(${class})] record = new [(${class})]();
+        [# th:each="deserialiser : ${deserialisers}" ]
+        record.[(${deserialiser.attribute})]= lineFeed.substring([(${deserialiser.firstDigit})],[(${deserialiser.lastDigit})]).trim();
+        [/]
+        return record;
+    }
+}
