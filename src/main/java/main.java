@@ -144,6 +144,10 @@ class main {
             throw new Exception("Last digit must be number, lastDigit = "+lastDigit);
         }
 
+        if (parseInt(firstDigit) > 0) {
+            throw new Exception("First digit must greater than 0,  firstDigit = "+firstDigit);
+        }
+
         if (parseInt(firstDigit) > parseInt(lastDigit)) {
             throw new Exception("First digit must greater than last digit,  firstDigit = "+firstDigit+", lastDigit = "+lastDigit);
         }
